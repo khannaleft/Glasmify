@@ -1,4 +1,5 @@
 {
   "name": "Glasmify - Modern Ecommerce",
-  "description": "A sleek, modern ecommerce application featuring a glass morphism design theme. Browse products, view details in an elegant modal, and manage your shopping cart in a fluid, visually appealing interface."
+  "description": "A sleek, modern ecommerce application featuring a glass morphism design theme. Browse products, view details in an elegant modal, and manage your shopping cart in a fluid, visually appealing interface.",
+  "requestFramePermissions": []
 }
