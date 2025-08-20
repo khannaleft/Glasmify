@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .input-field {
+    @apply w-full rounded-md border border-white/20 bg-white/10 py-2 px-3 text-white placeholder-gray-400 transition-all duration-300 focus:border-brand-accent/50 focus:bg-white/20 focus:outline-none focus:ring-1 focus:ring-brand-accent;
+  }
+}
