@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Header } from './components/Header';
 import { ProductGrid } from './components/ProductGrid';
@@ -36,8 +35,8 @@ export default function HomePage() {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        const productsCollection = collection(db, 'products');
-        const productSnapshot = await getDocs(productsCollection);
+        const productsCollection = db.collection('products');
+        const productSnapshot = await productsCollection.get();
         const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(productList);
       } catch (error) {

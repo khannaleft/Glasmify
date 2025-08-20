@@ -5,7 +5,6 @@ import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import type { User, Product } from '../lib/types';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, deleteDoc, collection } from 'firebase/firestore';
 
 
 interface UserContextType {
@@ -46,8 +45,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (currentUser) {
-        const wishlistRef = collection(db, 'users', currentUser.uid, 'wishlist');
-        const unsubscribe = onSnapshot(wishlistRef, (snapshot) => {
+        const wishlistRef = db.collection('users').doc(currentUser.uid).collection('wishlist');
+        const unsubscribe = wishlistRef.onSnapshot((snapshot) => {
             const items = snapshot.docs.map(doc => ({ ...doc.data() as Product, id: doc.id }));
             setWishlist(items);
         });
@@ -76,11 +75,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         openLoginModal();
         return;
     }
-    const wishlistItemRef = doc(db, 'users', currentUser.uid, 'wishlist', product.id);
+    const wishlistItemRef = db.collection('users').doc(currentUser.uid).collection('wishlist').doc(product.id);
     if (isInWishlist(product.id)) {
-        await deleteDoc(wishlistItemRef);
+        await wishlistItemRef.delete();
     } else {
-        await setDoc(wishlistItemRef, product);
+        await wishlistItemRef.set(product);
     }
   };
 

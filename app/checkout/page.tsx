@@ -6,8 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCart, useUser, useToast } from '../../lib/hooks';
 import { Icon } from '../components/Icon';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db, firebase } from '../../lib/firebase';
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, clearCart } = useCart();
@@ -29,7 +28,7 @@ export default function CheckoutPage() {
     try {
       const orderData = {
         userId: currentUser.uid,
-        createdAt: serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         items: cartItems,
         subtotal,
         shipping: shippingCost,
@@ -39,7 +38,7 @@ export default function CheckoutPage() {
       };
 
       // Store order in the user's subcollection for easy retrieval
-      await addDoc(collection(db, 'users', currentUser.uid, 'orders'), orderData);
+      await db.collection('users').doc(currentUser.uid).collection('orders').add(orderData);
       
       clearCart();
       router.push('/checkout/success');

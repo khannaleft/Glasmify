@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { db } from '../../lib/firebase';
 import { PRODUCTS } from '../../lib/constants';
-import { writeBatch, doc, collection } from 'firebase/firestore';
 import { useToast } from '../../lib/hooks';
 import { Icon } from '../components/Icon';
 
@@ -16,11 +15,11 @@ export default function SeedPage() {
     const handleSeedDatabase = async () => {
         setIsLoading(true);
         try {
-            const batch = writeBatch(db);
-            const productsCollection = collection(db, 'products');
+            const batch = db.batch();
+            const productsCollection = db.collection('products');
 
             PRODUCTS.forEach((product) => {
-                const docRef = doc(productsCollection, product.id);
+                const docRef = productsCollection.doc(product.id);
                 batch.set(docRef, product);
             });
 

@@ -1,11 +1,10 @@
 // context/CartContext.tsx
 "use client";
 
-import React, { createContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, ReactNode, useEffect, useContext } from 'react';
 import type { Product, CartItem } from '../lib/types';
-import { useUser } from '../lib/hooks';
+import { UserContext } from './UserContext';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -22,14 +21,19 @@ interface CartContextType {
 export const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { currentUser, openLoginModal } = useUser();
+  const userContext = useContext(UserContext);
+  if (!userContext) {
+    throw new Error('CartProvider must be used inside a UserProvider');
+  }
+  const { currentUser, openLoginModal } = userContext;
+  
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
-      const cartRef = collection(db, 'users', currentUser.uid, 'cart');
-      const unsubscribe = onSnapshot(cartRef, (snapshot) => {
+      const cartRef = db.collection('users').doc(currentUser.uid).collection('cart');
+      const unsubscribe = cartRef.onSnapshot((snapshot) => {
         const items = snapshot.docs.map(doc => ({ ...doc.data() as CartItem, id: doc.id }));
         setCartItems(items);
       });
@@ -44,15 +48,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       openLoginModal();
       return;
     }
-    const cartItemRef = doc(db, 'users', currentUser.uid, 'cart', productToAdd.id);
+    const cartItemRef = db.collection('users').doc(currentUser.uid).collection('cart').doc(productToAdd.id);
     
     try {
-        await runTransaction(db, async (transaction) => {
+        await db.runTransaction(async (transaction) => {
             const sfDoc = await transaction.get(cartItemRef);
-            if (!sfDoc.exists()) {
+            if (!sfDoc.exists) {
                 transaction.set(cartItemRef, { ...productToAdd, quantity: 1 });
             } else {
-                const newQuantity = sfDoc.data().quantity + 1;
+                const newQuantity = (sfDoc.data()?.quantity || 0) + 1;
                 transaction.update(cartItemRef, { quantity: newQuantity });
             }
         });
@@ -63,8 +67,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const removeFromCart = async (productId: string) => {
     if (!currentUser) return;
-    const cartItemRef = doc(db, 'users', currentUser.uid, 'cart', productId);
-    await deleteDoc(cartItemRef);
+    const cartItemRef = db.collection('users').doc(currentUser.uid).collection('cart').doc(productId);
+    await cartItemRef.delete();
   };
 
   const updateQuantity = async (productId: string, newQuantity: number) => {
@@ -72,8 +76,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (newQuantity <= 0) {
       await removeFromCart(productId);
     } else {
-      const cartItemRef = doc(db, 'users', currentUser.uid, 'cart', productId);
-      await setDoc(cartItemRef, { quantity: newQuantity }, { merge: true });
+      const cartItemRef = db.collection('users').doc(currentUser.uid).collection('cart').doc(productId);
+      await cartItemRef.set({ quantity: newQuantity }, { merge: true });
     }
   };
   
@@ -82,8 +86,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // This requires a batch write to delete all items, which is more advanced.
     // For simplicity, we'll delete one by one.
     cartItems.forEach(item => {
-        const cartItemRef = doc(db, 'users', currentUser.uid, 'cart', item.id);
-        deleteDoc(cartItemRef);
+        const cartItemRef = db.collection('users').doc(currentUser.uid).collection('cart').doc(item.id);
+        cartItemRef.delete();
     });
   }
 
